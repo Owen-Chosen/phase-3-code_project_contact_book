@@ -1,7 +1,5 @@
 import click
-from sqlalchemy.orm import declarative_base
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from models import Contact, session
 
 
 @click.group('mycommands')
@@ -15,38 +13,36 @@ def mycommands():
 @click.option('--phone', prompt='Phone number', type=int, help='Enter contacts phone numer')
 @click.option('--email', prompt='Email', type=str, help='Enter contacts email')
 def register_contact(firstname, lastname, phone, email):
-    return {
-        'firstname': firstname,
-        'lastname': lastname,
-        'phone': int(phone),
-        'email': email
-    }
+    new_contact = Contact(
+        firstname = firstname,
+        lastname = lastname,
+        phone = int(phone),
+        email = email
+    )
+    session.add(new_contact)
+    session.commit()
+    click.echo("SAVED IN DATABASE...")
+
 
 @click.command()
 def show_contacts():
-    print("One")
+    for contact in session.query(Contact).all():
+        click.echo(contact)
+
 
 @click.command()
-def delete_contact():
-    pass
+@click.option('--id', prompt='Enter contact id', type=int, help='Enter contacts id to be deleted')
+def delete_contact(id):
+    session.query(Contact).filter(Contact.id==id).delete()
+    for contact in session.query(Contact).all():
+        click.echo(contact)
+    session.commit()
 
-@click.command()
-def update_contact():
-    pass
-
-Base = declarative_base()
-contact = {}
 
 mycommands.add_command(register_contact)
 mycommands.add_command(show_contacts)
 mycommands.add_command(delete_contact)
-mycommands.add_command(update_contact)
 
 
 if __name__ == '__main__':
     mycommands()
-    engine = create_engine('sqlite:///phone_book.db')
-    Base.metadata.create_all(engine)
-
-    session = sessionmaker(bind=engine)
-    session = session()
